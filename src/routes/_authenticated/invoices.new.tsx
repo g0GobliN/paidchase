@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { createInvoice, getNextInvoiceNumber } from "@/lib/api/invoices.functions";
-import { listClients } from "@/lib/api/clients.functions";
+import { createClient, listClients } from "@/lib/api/clients.functions";
 import { getProfile, listSequences } from "@/lib/api/profile.functions";
 import { SUPPORTED_CURRENCIES } from "@/lib/currency";
 import { generateInvoicePdf } from "@/lib/invoices/pdf";
@@ -44,12 +44,16 @@ function NewInvoice() {
   const fetchSequences = useServerFn(listSequences);
   const fetchProfile = useServerFn(getProfile);
   const addInvoice = useServerFn(createInvoice);
+  const addClient = useServerFn(createClient);
 
   const { data: numberData } = useQuery({
     queryKey: ["next-invoice-number"],
     queryFn: () => fetchNumber(),
   });
-  const { data: clients = [] } = useQuery({ queryKey: ["clients"], queryFn: () => fetchClients() });
+  const { data: clients = [], refetch: refetchClients } = useQuery({
+    queryKey: ["clients"],
+    queryFn: () => fetchClients(),
+  });
   const { data: sequences = [] } = useQuery({
     queryKey: ["sequences"],
     queryFn: () => fetchSequences(),
@@ -68,6 +72,8 @@ function NewInvoice() {
   });
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [generatePdf, setGeneratePdf] = useState(true);
+  const [showNewClient, setShowNewClient] = useState(false);
+  const [newClient, setNewClient] = useState({ name: "", email: "", company: "" });
 
   useEffect(() => {
     if (numberData?.invoice_number) {
@@ -93,6 +99,28 @@ function NewInvoice() {
     const standard = sequences.find((s) => s.type === "standard");
     setForm((f) => ({ ...f, sequence_id: standard?.id ?? sequences[0]!.id }));
   }, [sequences, form.sequence_id]);
+
+  const createClientMutation = useMutation({
+    mutationFn: () =>
+      addClient({
+        data: {
+          name: newClient.name,
+          email: newClient.email,
+          company: newClient.company || null,
+          phone: null,
+          notes: null,
+        },
+      }),
+    onSuccess: async (created) => {
+      toast.success("Client added.");
+      setShowNewClient(false);
+      setNewClient({ name: "", email: "", company: "" });
+      await refetchClients();
+      queryClient.invalidateQueries({ queryKey: ["clients"] });
+      setForm((f) => ({ ...f, client_id: created.id }));
+    },
+    onError: (error) => toast.error(firstErrorMessage(error, "Could not add that client.")),
+  });
 
   const mutation = useMutation({
     mutationFn: async (send: boolean) => {
@@ -170,7 +198,8 @@ function NewInvoice() {
             className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
             value={form.client_id}
             onChange={(e) => setForm({ ...form, client_id: e.target.value })}
-            required
+            required={!showNewClient}
+            disabled={showNewClient}
           >
             <option value="">Select a client</option>
             {clients.map((c) => (
@@ -180,13 +209,57 @@ function NewInvoice() {
               </option>
             ))}
           </select>
-          <p className="text-xs text-muted-foreground">
-            Need someone new?{" "}
-            <Link to="/clients" className="underline underline-offset-2">
-              Add a client
-            </Link>
-          </p>
+          <button
+            type="button"
+            className="text-xs text-muted-foreground underline underline-offset-2"
+            onClick={() => setShowNewClient((v) => !v)}
+          >
+            {showNewClient ? "Use existing client" : "Create a new client"}
+          </button>
         </div>
+
+        {showNewClient ? (
+          <div className="grid gap-3 rounded-md border border-border p-3 sm:grid-cols-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="new_client_name">Name</Label>
+              <Input
+                id="new_client_name"
+                value={newClient.name}
+                onChange={(e) => setNewClient({ ...newClient, name: e.target.value })}
+                required
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="new_client_email">Email</Label>
+              <Input
+                id="new_client_email"
+                type="email"
+                value={newClient.email}
+                onChange={(e) => setNewClient({ ...newClient, email: e.target.value })}
+                required
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="new_client_company">Company</Label>
+              <Input
+                id="new_client_company"
+                value={newClient.company}
+                onChange={(e) => setNewClient({ ...newClient, company: e.target.value })}
+              />
+            </div>
+            <div className="sm:col-span-3">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={createClientMutation.isPending}
+                onClick={() => createClientMutation.mutate()}
+              >
+                {createClientMutation.isPending ? "Saving…" : "Save client"}
+              </Button>
+            </div>
+          </div>
+        ) : null}
 
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-1.5">

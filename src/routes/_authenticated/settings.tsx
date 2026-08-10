@@ -9,10 +9,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { removeDemoData, seedDemoData } from "@/lib/api/demo.functions";
-import { getProfile, listSequences, updateProfile } from "@/lib/api/profile.functions";
+import { deleteAccount, getProfile, listSequences, updateProfile } from "@/lib/api/profile.functions";
 import { firstErrorMessage } from "@/lib/validation";
 import { SUPPORTED_CURRENCIES } from "@/lib/currency";
 import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_authenticated/settings")({
   head: () => ({
@@ -27,12 +28,14 @@ export const Route = createFileRoute("/_authenticated/settings")({
 });
 
 function Settings() {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const fetchProfile = useServerFn(getProfile);
   const saveProfile = useServerFn(updateProfile);
   const fetchSequences = useServerFn(listSequences);
   const seedDemo = useServerFn(seedDemoData);
   const clearDemo = useServerFn(removeDemoData);
+  const removeAccount = useServerFn(deleteAccount);
 
   const { data } = useQuery({ queryKey: ["profile"], queryFn: () => fetchProfile() });
   const { data: sequences = [] } = useQuery({
@@ -106,6 +109,18 @@ function Settings() {
       queryClient.invalidateQueries({ queryKey: ["clients"] });
     },
     onError: (error) => toast.error(firstErrorMessage(error, "Could not remove demo data.")),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: () => removeAccount(),
+    onSuccess: async () => {
+      await queryClient.cancelQueries();
+      queryClient.clear();
+      await supabase.auth.signOut();
+      toast.success("Account deleted.");
+      navigate({ to: "/", replace: true });
+    },
+    onError: (error) => toast.error(firstErrorMessage(error, "Could not delete your account.")),
   });
 
   return (
@@ -204,7 +219,7 @@ function Settings() {
         </Button>
       </section>
 
-      <section className="max-w-xl space-y-3 rounded-lg border border-border p-5">
+      <section className="mb-8 max-w-xl space-y-3 rounded-lg border border-border p-5">
         <h2 className="text-sm font-medium">Demo data</h2>
         <p className="text-sm text-muted-foreground">
           Load sample clients and invoices for testing. Easy to remove later.
@@ -227,6 +242,29 @@ function Settings() {
             {demoClear.isPending ? "Removing…" : "Remove demo data"}
           </Button>
         </div>
+      </section>
+
+      <section className="max-w-xl space-y-3 rounded-lg border border-destructive/30 p-5">
+        <h2 className="text-sm font-medium text-destructive">Delete account</h2>
+        <p className="text-sm text-muted-foreground">
+          Permanently deletes your clients, invoices, reminders, files, and login. This cannot be undone.
+        </p>
+        <Button
+          type="button"
+          variant="destructive"
+          disabled={deleteMutation.isPending}
+          onClick={() => {
+            if (
+              confirm(
+                "Delete your PaidChase account and all data permanently? This cannot be undone.",
+              )
+            ) {
+              deleteMutation.mutate();
+            }
+          }}
+        >
+          {deleteMutation.isPending ? "Deleting…" : "Delete account"}
+        </Button>
       </section>
     </AppShell>
   );

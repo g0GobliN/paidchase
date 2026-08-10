@@ -99,6 +99,8 @@ App: [http://localhost:8080](http://localhost:8080)
 | `RESEND_API_KEY` | Server only | Send reminder emails |
 | `EMAIL_FROM` | Server only | From address for reminders |
 
+Developer setup (architecture, cron, Resend, gaps): see [DEVELOPMENT.md](./DEVELOPMENT.md).
+
 ---
 
 ## License

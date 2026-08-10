@@ -59,3 +59,29 @@ export const listSequences = createServerFn({ method: "GET" })
     if (error) throw new Error("Could not load reminder sequences");
     return data ?? [];
   });
+
+/** Deletes the signed-in user's app data, then the auth user. Irreversible. */
+export const deleteAccount = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const userId = context.userId;
+
+    const { data: files } = await context.supabase.storage.from("invoice-pdfs").list(userId);
+    if (files?.length) {
+      await context.supabase.storage
+        .from("invoice-pdfs")
+        .remove(files.map((f) => `${userId}/${f.name}`));
+    }
+
+    await context.supabase.from("invoice_reminders").delete().eq("user_id", userId);
+    await context.supabase.from("invoice_events").delete().eq("user_id", userId);
+    await context.supabase.from("invoices").delete().eq("user_id", userId);
+    await context.supabase.from("clients").delete().eq("user_id", userId);
+    await context.supabase.from("subscriptions").delete().eq("user_id", userId);
+    await context.supabase.from("profiles").delete().eq("user_id", userId);
+
+    const { error } = await supabaseAdmin.auth.admin.deleteUser(userId);
+    if (error) throw new Error("Could not delete your account. Check SUPABASE_SERVICE_ROLE_KEY.");
+    return { ok: true };
+  });
