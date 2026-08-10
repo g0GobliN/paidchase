@@ -192,3 +192,21 @@ export const getInvoicePdfUrl = createServerFn({ method: "POST" })
     if (error || !signed) throw new Error("This invoice file is no longer available.");
     return { url: signed.signedUrl };
   });
+
+export const setInvoicePdfPath = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { id: string; pdf_path: string }) => data)
+  .handler(async ({ data, context }) => {
+    await assertOwnedInvoice(context.supabase, context.userId, data.id);
+    if (!data.pdf_path.startsWith(`${context.userId}/`)) {
+      throw new Error("Invalid invoice file path.");
+    }
+    const { error } = await context.supabase
+      .from("invoices")
+      .update({ pdf_path: data.pdf_path })
+      .eq("id", data.id)
+      .eq("user_id", context.userId);
+    if (error) throw new Error("Could not attach the PDF.");
+    await recordEvent(context.supabase, context.userId, data.id, "pdf_attached");
+    return { ok: true };
+  });

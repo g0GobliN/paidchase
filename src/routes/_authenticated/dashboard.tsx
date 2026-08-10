@@ -40,7 +40,7 @@ function Dashboard() {
         description="Everything still waiting to be paid."
         action={
           <Button asChild size="sm">
-            <Link to="/invoices">New invoice</Link>
+            <Link to="/invoices/new">New invoice</Link>
           </Button>
         }
       />
@@ -67,7 +67,7 @@ function Dashboard() {
           description="Add your first invoice and PaidChase will handle the follow-ups."
           action={
             <Button asChild size="sm">
-              <Link to="/invoices">Add invoice</Link>
+              <Link to="/invoices/new">Add invoice</Link>
             </Button>
           }
         />
@@ -76,9 +76,13 @@ function Dashboard() {
           {outstanding.map((invoice) => (
             <li key={invoice.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
               <div>
-                <p className="text-sm font-medium">
+                <Link
+                  to="/invoices/$invoiceId"
+                  params={{ invoiceId: invoice.id }}
+                  className="text-sm font-medium hover:underline"
+                >
                   {invoice.invoice_number} · {invoice.clients?.name ?? "Client"}
-                </p>
+                </Link>
                 <p className="text-xs text-muted-foreground">Due {formatDueDate(invoice.due_date)}</p>
               </div>
               <div className="flex items-center gap-3">

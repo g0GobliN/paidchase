@@ -33,7 +33,13 @@ function Onboarding() {
   });
 
   const mutation = useMutation({
-    mutationFn: () => saveProfile({ data: form }),
+    mutationFn: () =>
+      saveProfile({
+        data: {
+          ...form,
+          onboarding_completed: true,
+        },
+      }),
     onSuccess: () => navigate({ to: "/dashboard" }),
     onError: (error) => toast.error(firstErrorMessage(error, "Could not save your details.")),
   });

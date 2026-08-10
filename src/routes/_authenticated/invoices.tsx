@@ -1,9 +1,10 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 
 import { AppShell, EmptyState, PageHeader } from "@/components/app-shell";
 import { StatusBadge } from "@/components/status-badge";
+import { Button } from "@/components/ui/button";
 import { listInvoices } from "@/lib/api/invoices.functions";
 import { formatMoney } from "@/lib/currency";
 import { derivedStatus, type InvoiceStatus } from "@/lib/invoice-status";
@@ -21,39 +22,83 @@ export const Route = createFileRoute("/_authenticated/invoices")({
   component: Invoices,
 });
 
+function nextReminderLabel(
+  reminders: { scheduled_at: string; status: string }[] | null | undefined,
+) {
+  const next = (reminders ?? [])
+    .filter((r) => r.status === "scheduled")
+    .sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at))[0];
+  return next ? formatDueDate(next.scheduled_at.slice(0, 10)) : "—";
+}
+
 function Invoices() {
   const fetchInvoices = useServerFn(listInvoices);
   const { data = [], isLoading } = useQuery({ queryKey: ["invoices"], queryFn: () => fetchInvoices() });
 
   return (
     <AppShell>
-      <PageHeader title="Invoices" description="Every invoice PaidChase is watching." />
+      <PageHeader
+        title="Invoices"
+        description="Every invoice PaidChase is watching."
+        action={
+          <Button asChild size="sm">
+            <Link to="/invoices/new">New invoice</Link>
+          </Button>
+        }
+      />
       {isLoading ? (
         <p className="text-sm text-muted-foreground">Loading…</p>
       ) : data.length === 0 ? (
         <EmptyState
           title="No invoices yet"
           description="Once you add an invoice it shows up here with its reminder schedule."
+          action={
+            <Button asChild size="sm">
+              <Link to="/invoices/new">Add invoice</Link>
+            </Button>
+          }
         />
       ) : (
-        <ul className="divide-y divide-border rounded-lg border border-border">
-          {data.map((invoice) => (
-            <li key={invoice.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
-              <div>
-                <p className="text-sm font-medium">
-                  {invoice.invoice_number} · {invoice.clients?.name ?? "Client"}
-                </p>
-                <p className="text-xs text-muted-foreground">Due {formatDueDate(invoice.due_date)}</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="font-mono text-sm">
-                  {formatMoney(invoice.amount, invoice.currency)}
-                </span>
-                <StatusBadge status={derivedStatus(invoice.status as InvoiceStatus, invoice.due_date)} />
-              </div>
-            </li>
-          ))}
-        </ul>
+        <div className="overflow-x-auto rounded-lg border border-border">
+          <table className="w-full min-w-[720px] text-left text-sm">
+            <thead className="border-b border-border bg-surface text-xs uppercase tracking-wide text-muted-foreground">
+              <tr>
+                <th className="px-4 py-3 font-medium">Client</th>
+                <th className="px-4 py-3 font-medium">Invoice</th>
+                <th className="px-4 py-3 font-medium">Amount</th>
+                <th className="px-4 py-3 font-medium">Due</th>
+                <th className="px-4 py-3 font-medium">Status</th>
+                <th className="px-4 py-3 font-medium">Next reminder</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {data.map((invoice) => (
+                <tr key={invoice.id} className="hover:bg-surface/60">
+                  <td className="px-4 py-3">
+                    <Link
+                      to="/invoices/$invoiceId"
+                      params={{ invoiceId: invoice.id }}
+                      className="font-medium hover:underline"
+                    >
+                      {invoice.clients?.name ?? "Client"}
+                    </Link>
+                  </td>
+                  <td className="px-4 py-3 text-muted-foreground">{invoice.invoice_number}</td>
+                  <td className="px-4 py-3 font-mono">
+                    {formatMoney(invoice.amount, invoice.currency)}
+                  </td>
+                  <td className="px-4 py-3">{formatDueDate(invoice.due_date)}</td>
+                  <td className="px-4 py-3">
+                    <StatusBadge status={derivedStatus(invoice.status as InvoiceStatus, invoice.due_date)} />
+                  </td>
+                  <td className="px-4 py-3 text-muted-foreground">
+                    {nextReminderLabel(invoice.invoice_reminders)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </AppShell>
   );
