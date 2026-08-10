@@ -142,7 +142,7 @@ function NewInvoice() {
           description: form.description,
           amount: Number(form.amount),
           currency: form.currency,
-          paymentInstructions: "Please pay using the details we shared previously.",
+          paymentInstructions: profile?.payment_instructions ?? "",
         });
         pdf_path = await uploadInvoicePdf(blob, `${form.invoice_number}.pdf`);
       }

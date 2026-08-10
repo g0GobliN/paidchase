@@ -18,6 +18,8 @@ import { Route as AuthenticatedDashboardRouteImport } from './routes/_authentica
 import { Route as AuthenticatedInvoicesRouteImport } from './routes/_authenticated/invoices'
 import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
+import { Route as AuthenticatedTemplatesRouteImport } from './routes/_authenticated/templates'
+import { Route as AuthenticatedInvoicesIndexRouteImport } from './routes/_authenticated/invoices.index'
 import { Route as AuthenticatedInvoicesInvoiceIdRouteImport } from './routes/_authenticated/invoices.$invoiceId'
 import { Route as AuthenticatedInvoicesNewRouteImport } from './routes/_authenticated/invoices.new'
 import { Route as ApiPublicHooksProcessRemindersRouteImport } from './routes/api/public/hooks/process-reminders'
@@ -66,6 +68,17 @@ const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedTemplatesRoute = AuthenticatedTemplatesRouteImport.update({
+  id: '/templates',
+  path: '/templates',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedInvoicesIndexRoute =
+  AuthenticatedInvoicesIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedInvoicesRoute,
+  } as any)
 const AuthenticatedInvoicesInvoiceIdRoute =
   AuthenticatedInvoicesInvoiceIdRouteImport.update({
     id: '/$invoiceId',
@@ -94,8 +107,10 @@ export interface FileRoutesByFullPath {
   '/invoices': typeof AuthenticatedInvoicesRouteWithChildren
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/settings': typeof AuthenticatedSettingsRoute
+  '/templates': typeof AuthenticatedTemplatesRoute
   '/invoices/$invoiceId': typeof AuthenticatedInvoicesInvoiceIdRoute
   '/invoices/new': typeof AuthenticatedInvoicesNewRoute
+  '/invoices/': typeof AuthenticatedInvoicesIndexRoute
   '/api/public/hooks/process-reminders': typeof ApiPublicHooksProcessRemindersRoute
 }
 export interface FileRoutesByTo {
@@ -104,11 +119,12 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/clients': typeof AuthenticatedClientsRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
-  '/invoices': typeof AuthenticatedInvoicesRouteWithChildren
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/settings': typeof AuthenticatedSettingsRoute
+  '/templates': typeof AuthenticatedTemplatesRoute
   '/invoices/$invoiceId': typeof AuthenticatedInvoicesInvoiceIdRoute
   '/invoices/new': typeof AuthenticatedInvoicesNewRoute
+  '/invoices': typeof AuthenticatedInvoicesIndexRoute
   '/api/public/hooks/process-reminders': typeof ApiPublicHooksProcessRemindersRoute
 }
 export interface FileRoutesById {
@@ -122,8 +138,10 @@ export interface FileRoutesById {
   '/_authenticated/invoices': typeof AuthenticatedInvoicesRouteWithChildren
   '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
+  '/_authenticated/templates': typeof AuthenticatedTemplatesRoute
   '/_authenticated/invoices/$invoiceId': typeof AuthenticatedInvoicesInvoiceIdRoute
   '/_authenticated/invoices/new': typeof AuthenticatedInvoicesNewRoute
+  '/_authenticated/invoices/': typeof AuthenticatedInvoicesIndexRoute
   '/api/public/hooks/process-reminders': typeof ApiPublicHooksProcessRemindersRoute
 }
 export interface FileRouteTypes {
@@ -137,8 +155,10 @@ export interface FileRouteTypes {
     | '/invoices'
     | '/onboarding'
     | '/settings'
+    | '/templates'
     | '/invoices/$invoiceId'
     | '/invoices/new'
+    | '/invoices/'
     | '/api/public/hooks/process-reminders'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -147,11 +167,12 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/clients'
     | '/dashboard'
-    | '/invoices'
     | '/onboarding'
     | '/settings'
+    | '/templates'
     | '/invoices/$invoiceId'
     | '/invoices/new'
+    | '/invoices'
     | '/api/public/hooks/process-reminders'
   id:
     | '__root__'
@@ -164,8 +185,10 @@ export interface FileRouteTypes {
     | '/_authenticated/invoices'
     | '/_authenticated/onboarding'
     | '/_authenticated/settings'
+    | '/_authenticated/templates'
     | '/_authenticated/invoices/$invoiceId'
     | '/_authenticated/invoices/new'
+    | '/_authenticated/invoices/'
     | '/api/public/hooks/process-reminders'
   fileRoutesById: FileRoutesById
 }
@@ -242,6 +265,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSettingsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/templates': {
+      id: '/_authenticated/templates'
+      path: '/templates'
+      fullPath: '/templates'
+      preLoaderRoute: typeof AuthenticatedTemplatesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/invoices/': {
+      id: '/_authenticated/invoices/'
+      path: '/'
+      fullPath: '/invoices/'
+      preLoaderRoute: typeof AuthenticatedInvoicesIndexRouteImport
+      parentRoute: typeof AuthenticatedInvoicesRoute
+    }
     '/_authenticated/invoices/$invoiceId': {
       id: '/_authenticated/invoices/$invoiceId'
       path: '/$invoiceId'
@@ -269,11 +306,13 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedInvoicesRouteChildren {
   AuthenticatedInvoicesInvoiceIdRoute: typeof AuthenticatedInvoicesInvoiceIdRoute
   AuthenticatedInvoicesNewRoute: typeof AuthenticatedInvoicesNewRoute
+  AuthenticatedInvoicesIndexRoute: typeof AuthenticatedInvoicesIndexRoute
 }
 
 const AuthenticatedInvoicesRouteChildren: AuthenticatedInvoicesRouteChildren = {
   AuthenticatedInvoicesInvoiceIdRoute: AuthenticatedInvoicesInvoiceIdRoute,
   AuthenticatedInvoicesNewRoute: AuthenticatedInvoicesNewRoute,
+  AuthenticatedInvoicesIndexRoute: AuthenticatedInvoicesIndexRoute,
 }
 
 const AuthenticatedInvoicesRouteWithChildren =
@@ -287,6 +326,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedInvoicesRoute: typeof AuthenticatedInvoicesRouteWithChildren
   AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
+  AuthenticatedTemplatesRoute: typeof AuthenticatedTemplatesRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -295,6 +335,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedInvoicesRoute: AuthenticatedInvoicesRouteWithChildren,
   AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
+  AuthenticatedTemplatesRoute: AuthenticatedTemplatesRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =

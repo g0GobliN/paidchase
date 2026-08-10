@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   cancelInvoice,
+  deleteInvoice,
   getInvoice,
   getInvoicePdfUrl,
   markInvoicePaid,
@@ -26,6 +27,14 @@ import { formatDueDate } from "@/lib/templates";
 import { firstErrorMessage } from "@/lib/validation";
 
 export const Route = createFileRoute("/_authenticated/invoices/$invoiceId")({
+  params: {
+    parse: (p) => {
+      if (!/^[0-9a-f-]{36}$/i.test(p.invoiceId)) {
+        throw new Error("Invalid invoice");
+      }
+      return p;
+    },
+  },
   head: () => ({
     meta: [
       { title: "Invoice — PaidChase" },
@@ -61,6 +70,7 @@ function InvoiceDetail() {
   const doRetry = useServerFn(retryReminder);
   const doPdfUrl = useServerFn(getInvoicePdfUrl);
   const doSetPdf = useServerFn(setInvoicePdfPath);
+  const doDelete = useServerFn(deleteInvoice);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["invoice", invoiceId],
@@ -131,6 +141,29 @@ function InvoiceDetail() {
       invalidate();
     },
     onError: (err) => toast.error(firstErrorMessage(err)),
+  });
+
+  const remove = useMutation({
+    mutationFn: async () => {
+      if (
+        !confirm(
+          "Permanently delete this invoice, its reminders, and its timeline? This cannot be undone.",
+        )
+      ) {
+        throw new Error("Cancelled");
+      }
+      return doDelete({ data: { id: invoiceId } });
+    },
+    onSuccess: async () => {
+      toast.success("Invoice deleted.");
+      await queryClient.invalidateQueries({ queryKey: ["invoices"] });
+      queryClient.removeQueries({ queryKey: ["invoice", invoiceId] });
+      navigate({ to: "/invoices", replace: true });
+    },
+    onError: (err) => {
+      if (err instanceof Error && err.message === "Cancelled") return;
+      toast.error(firstErrorMessage(err));
+    },
   });
 
   if (isLoading) {
@@ -320,9 +353,17 @@ function InvoiceDetail() {
         </section>
       </div>
 
-      <div className="mt-8">
+      <div className="mt-8 flex flex-wrap items-center justify-between gap-3">
         <Button variant="ghost" size="sm" onClick={() => navigate({ to: "/invoices" })}>
           Back to invoices
+        </Button>
+        <Button
+          variant="destructive"
+          size="sm"
+          disabled={remove.isPending}
+          onClick={() => remove.mutate()}
+        >
+          {remove.isPending ? "Deleting…" : "Delete invoice"}
         </Button>
       </div>
     </AppShell>

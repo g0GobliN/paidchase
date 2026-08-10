@@ -241,6 +241,7 @@ export type Database = {
           email: string | null
           id: string
           onboarding_completed: boolean
+          payment_instructions: string | null
           sender_name: string | null
           updated_at: string
           user_id: string
@@ -253,6 +254,7 @@ export type Database = {
           email?: string | null
           id?: string
           onboarding_completed?: boolean
+          payment_instructions?: string | null
           sender_name?: string | null
           updated_at?: string
           user_id: string
@@ -265,6 +267,7 @@ export type Database = {
           email?: string | null
           id?: string
           onboarding_completed?: boolean
+          payment_instructions?: string | null
           sender_name?: string | null
           updated_at?: string
           user_id?: string

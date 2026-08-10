@@ -47,7 +47,7 @@ const FAQ = [
   },
   {
     q: "Can I customize emails?",
-    a: "Each sequence ships with professional wording and merge fields like the client name, amount and due date. Nothing aggressive, ever.",
+    a: "Yes. Edit subject and body for every reminder step, with merge fields like client name, amount, and due date. Keep it polite — PaidChase is built for professional follow-ups.",
   },
   {
     q: "Is my invoice data private?",

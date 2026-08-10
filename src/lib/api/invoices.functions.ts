@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { isPathOwnedBy } from "@/lib/invoices/pdf-path";
 import { invoiceInputSchema } from "@/lib/validation";
 import {
   assertOwnedInvoice,
@@ -26,7 +27,10 @@ export const listInvoices = createServerFn({ method: "GET" })
       )
       .order("due_date", { ascending: true });
     if (error) throw new Error("Could not load invoices");
-    return data ?? [];
+    return (data ?? []).map((invoice) => ({
+      ...invoice,
+      clients: Array.isArray(invoice.clients) ? invoice.clients[0] ?? null : invoice.clients,
+    }));
   });
 
 export const getInvoice = createServerFn({ method: "GET" })
@@ -55,7 +59,16 @@ export const getInvoice = createServerFn({ method: "GET" })
         .order("created_at"),
     ]);
 
-    return { invoice, reminders: reminders ?? [], events: events ?? [] };
+    const clients = Array.isArray(invoice.clients) ? invoice.clients[0] ?? null : invoice.clients;
+    const reminder_sequences = Array.isArray(invoice.reminder_sequences)
+      ? invoice.reminder_sequences[0] ?? null
+      : invoice.reminder_sequences;
+
+    return {
+      invoice: { ...invoice, clients, reminder_sequences },
+      reminders: reminders ?? [],
+      events: events ?? [],
+    };
   });
 
 export const createInvoice = createServerFn({ method: "POST" })
@@ -146,9 +159,20 @@ export const deleteInvoice = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: { id: string }) => data)
   .handler(async ({ data, context }) => {
-    await assertOwnedInvoice(context.supabase, context.userId, data.id);
+    const { data: invoice } = await context.supabase
+      .from("invoices")
+      .select("id, user_id, pdf_path")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (!invoice || invoice.user_id !== context.userId) throw new Error("Invoice not found");
+
     const { error } = await context.supabase.from("invoices").delete().eq("id", data.id);
     if (error) throw new Error("Could not delete this invoice.");
+
+    // Reminders and events cascade; the stored PDF does not.
+    if (isPathOwnedBy(invoice.pdf_path, context.userId)) {
+      await context.supabase.storage.from("invoice-pdfs").remove([invoice.pdf_path!]);
+    }
     return { ok: true };
   });
 
@@ -198,7 +222,7 @@ export const setInvoicePdfPath = createServerFn({ method: "POST" })
   .inputValidator((data: { id: string; pdf_path: string }) => data)
   .handler(async ({ data, context }) => {
     await assertOwnedInvoice(context.supabase, context.userId, data.id);
-    if (!data.pdf_path.startsWith(`${context.userId}/`)) {
+    if (!isPathOwnedBy(data.pdf_path, context.userId)) {
       throw new Error("Invalid invoice file path.");
     }
     const { error } = await context.supabase

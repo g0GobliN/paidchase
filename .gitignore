@@ -23,6 +23,7 @@ dist-ssr
 
 # Local-only notes
 DEVELOPMENT.md
+docs/
 
 # Wrangler / Cloudflare
 .wrangler/

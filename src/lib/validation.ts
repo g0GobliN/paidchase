@@ -40,6 +40,9 @@ export const profileInputSchema = z.object({
   currency: z.enum(SUPPORTED_CURRENCIES).optional(),
   default_sequence_id: z.string().uuid().nullable().optional(),
   onboarding_completed: z.boolean().optional(),
+  // Capped at 600 because generateInvoicePdf writes a single page with no overflow
+  // handling — a longer value runs off the bottom as silently invisible text.
+  payment_instructions: z.string().trim().max(600).optional().nullable(),
 });
 export type ProfileInput = z.infer<typeof profileInputSchema>;
 

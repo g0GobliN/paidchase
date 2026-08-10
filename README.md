@@ -61,6 +61,9 @@ Yes — attach your PDF, or generate a simple one.
 **Can I stop reminders?**  
 Pause, resume, or cancel any invoice anytime.
 
+**Can I customize emails?**  
+Yes — edit every reminder subject and body in your voice, with merge fields for client and invoice details.
+
 **Is my data private?**  
 Yes. Accounts are isolated; invoice files live in private storage.
 

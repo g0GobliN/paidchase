@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
+import { isPathOwnedBy } from "@/lib/invoices/pdf-path";
 import { planReminders, type ReminderStepLike } from "@/lib/reminders/schedule";
 import { canReceiveReminders, type InvoiceStatus } from "@/lib/invoice-status";
 import type { InvoiceInput } from "@/lib/validation";
@@ -118,6 +119,11 @@ export async function createInvoiceRecord(
   }
   if (new Date(input.due_date) < new Date(input.issue_date)) {
     throw new Error("Due date must be on or after the issue date.");
+  }
+  // The worker downloads this path with the service-role client, which bypasses
+  // storage RLS — so ownership has to be proven here, not left to the bucket policy.
+  if (input.pdf_path && !isPathOwnedBy(input.pdf_path, userId)) {
+    throw new Error("Invalid invoice file path.");
   }
 
   const { data: invoice, error } = await supabase

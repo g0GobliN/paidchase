@@ -1,0 +1,54 @@
+# Reminder worker schedule.
+#
+# Nothing in the application sends reminders on its own — the worker endpoint is
+# inert until something calls it. Without this file the product silently does
+# nothing, which is exactly how it shipped before.
+#
+# Required repository secrets:
+#   APP_URL        e.g. https://paidchase.example.com  (no trailing slash)
+#   WORKER_SECRET  must match the WORKER_SECRET set on the server
+name: Process reminders
+
+on:
+  schedule:
+    # Every 15 minutes. Reminders target 09:00 UTC, so this bounds delivery lag
+    # to a quarter hour rather than a day.
+    - cron: "*/15 * * * *"
+  workflow_dispatch: {}
+
+concurrency:
+  # Overlapping runs are safe (claims are atomic) but pointless.
+  group: process-reminders
+  cancel-in-progress: false
+
+jobs:
+  process:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Trigger reminder worker
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          WORKER_SECRET: ${{ secrets.WORKER_SECRET }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${APP_URL:-}" ] || [ -z "${WORKER_SECRET:-}" ]; then
+            echo "::error::APP_URL and WORKER_SECRET repository secrets must both be set."
+            exit 1
+          fi
+
+          response=$(mktemp)
+          status=$(curl -sS -o "$response" -w '%{http_code}' \
+            --max-time 300 \
+            -X POST "${APP_URL}/api/public/hooks/process-reminders" \
+            -H "x-worker-secret: ${WORKER_SECRET}")
+
+          echo "HTTP $status"
+          cat "$response"
+          echo
+
+          if [ "$status" != "200" ]; then
+            echo "::error::Reminder worker returned HTTP $status"
+            exit 1
+          fi

@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { createClient } from "@/lib/api/clients.functions";
 import { updateProfile } from "@/lib/api/profile.functions";
 import { SUPPORTED_CURRENCIES } from "@/lib/currency";
@@ -33,6 +34,7 @@ function Onboarding() {
     business_name: "",
     sender_name: "",
     currency: "USD" as (typeof SUPPORTED_CURRENCIES)[number],
+    payment_instructions: "",
   });
   const [client, setClient] = useState({ name: "", email: "", company: "" });
   const [createdClientId, setCreatedClientId] = useState<string | null>(null);
@@ -146,6 +148,23 @@ function Onboarding() {
                   </option>
                 ))}
               </select>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="payment_instructions">How do clients pay you?</Label>
+              <Textarea
+                id="payment_instructions"
+                rows={4}
+                maxLength={600}
+                value={form.payment_instructions}
+                onChange={(e) => setForm({ ...form, payment_instructions: e.target.value })}
+                placeholder={
+                  "How to pay:\nBank transfer — Acme Ltd\nSort code 00-00-00 · Account 12345678"
+                }
+              />
+              <p className="text-xs text-muted-foreground">
+                Goes into every reminder so clients can pay without asking. You can change this
+                later in Settings.
+              </p>
             </div>
             <div className="flex gap-2">
               <Button type="button" variant="ghost" className="w-full" onClick={() => setStep(1)}>

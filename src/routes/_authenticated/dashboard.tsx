@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { AppShell, EmptyState, PageHeader } from "@/components/app-shell";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
-import { listInvoices, markInvoicePaid, pauseInvoice } from "@/lib/api/invoices.functions";
+import { listInvoices, markInvoicePaid, pauseInvoice, resumeInvoice } from "@/lib/api/invoices.functions";
 import { formatMoney } from "@/lib/currency";
 import { derivedStatus, type InvoiceStatus } from "@/lib/invoice-status";
 import { formatDueDate } from "@/lib/templates";
@@ -39,6 +39,7 @@ function Dashboard() {
   const fetchInvoices = useServerFn(listInvoices);
   const doPaid = useServerFn(markInvoicePaid);
   const doPause = useServerFn(pauseInvoice);
+  const doResume = useServerFn(resumeInvoice);
   const { data = [], isLoading } = useQuery({ queryKey: ["invoices"], queryFn: () => fetchInvoices() });
 
   const outstanding = data.filter((i) => i.status !== "paid" && i.status !== "cancelled");
@@ -59,17 +60,24 @@ function Dashboard() {
     outstanding[0]?.currency ?? data.find((i) => i.status === "paid")?.currency ?? "USD";
 
   const action = useMutation({
-    mutationFn: async ({ id, kind }: { id: string; kind: "paid" | "pause" }) => {
+    mutationFn: async ({ id, kind }: { id: string; kind: "paid" | "pause" | "resume" }) => {
       if (kind === "paid") {
         if (!confirm("Mark this invoice as paid? All future reminders will stop.")) {
           throw new Error("Cancelled");
         }
         return doPaid({ data: { id } });
       }
+      if (kind === "resume") return doResume({ data: { id } });
       return doPause({ data: { id } });
     },
     onSuccess: (_, vars) => {
-      toast.success(vars.kind === "paid" ? "Marked paid." : "Reminders paused.");
+      toast.success(
+        vars.kind === "paid"
+          ? "Marked paid."
+          : vars.kind === "resume"
+            ? "Reminders resumed."
+            : "Reminders paused.",
+      );
       queryClient.invalidateQueries({ queryKey: ["invoices"] });
     },
     onError: (err) => {
@@ -156,10 +164,19 @@ function Dashboard() {
                       <div className="flex flex-wrap gap-1">
                         <Button asChild size="sm" variant="ghost">
                           <Link to="/invoices/$invoiceId" params={{ invoiceId: invoice.id }}>
-                            Open
+                            Details
                           </Link>
                         </Button>
-                        {invoice.status !== "paused" && invoice.status !== "draft" ? (
+                        {invoice.status === "paused" ? (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            disabled={action.isPending}
+                            onClick={() => action.mutate({ id: invoice.id, kind: "resume" })}
+                          >
+                            Resume
+                          </Button>
+                        ) : invoice.status !== "draft" ? (
                           <Button
                             size="sm"
                             variant="ghost"

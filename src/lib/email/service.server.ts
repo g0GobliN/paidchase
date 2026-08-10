@@ -14,7 +14,12 @@ export class EmailService {
 
   async send(message: EmailMessage): Promise<EmailSendResult> {
     if (!message.to || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(message.to)) {
-      return { ok: false, error: "Recipient email address is missing or invalid" };
+      // A malformed address will never become valid by retrying.
+      return {
+        ok: false,
+        error: "Recipient email address is missing or invalid",
+        retryable: false,
+      };
     }
     return this.provider.send(message);
   }

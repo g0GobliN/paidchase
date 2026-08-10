@@ -13,6 +13,7 @@ export type TemplateVariables = {
   due_date: string;
   business_name: string;
   sender_name: string;
+  payment_instructions: string;
 };
 
 export const TEMPLATE_VARIABLE_NAMES: (keyof TemplateVariables)[] = [
@@ -24,6 +25,7 @@ export const TEMPLATE_VARIABLE_NAMES: (keyof TemplateVariables)[] = [
   "due_date",
   "business_name",
   "sender_name",
+  "payment_instructions",
 ];
 
 export function renderTemplate(template: string, vars: TemplateVariables): string {
@@ -31,6 +33,30 @@ export function renderTemplate(template: string, vars: TemplateVariables): strin
     const value = (vars as Record<string, string | undefined>)[key];
     return value === undefined ? match : value;
   });
+}
+
+/**
+ * Renders an email body and tidies the result.
+ *
+ * A variable that resolves to an empty string (an unset `payment_instructions`, say)
+ * otherwise leaves a hole where its paragraph was, so runs of blank lines collapse to
+ * a single blank line and leading/trailing whitespace is trimmed.
+ */
+export function renderBody(template: string, vars: TemplateVariables): string {
+  return renderTemplate(template, vars)
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+/** Subjects are a single line — a multi-line variable must not break the header. */
+const MAX_SUBJECT_LENGTH = 200;
+
+export function renderSubject(template: string, vars: TemplateVariables): string {
+  const rendered = renderTemplate(template, vars).replace(/\s+/g, " ").trim();
+  return rendered.length > MAX_SUBJECT_LENGTH
+    ? `${rendered.slice(0, MAX_SUBJECT_LENGTH - 1).trimEnd()}…`
+    : rendered;
 }
 
 export function formatDueDate(date: string): string {
@@ -53,6 +79,7 @@ export function buildTemplateVariables(input: {
   dueDate: string;
   businessName: string | null;
   senderName: string | null;
+  paymentInstructions?: string | null;
 }): TemplateVariables {
   return {
     client_name: input.clientName ?? "there",
@@ -63,6 +90,9 @@ export function buildTemplateVariables(input: {
     due_date: formatDueDate(input.dueDate),
     business_name: input.businessName ?? "",
     sender_name: input.senderName ?? "",
+    // Empty rather than a placeholder: the system templates carry this tag on its own
+    // paragraph, and renderBody collapses the gap when there is nothing to say.
+    payment_instructions: input.paymentInstructions?.trim() ?? "",
   };
 }
 

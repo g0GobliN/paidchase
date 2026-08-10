@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
@@ -8,12 +8,12 @@ import { AppShell, PageHeader } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { removeDemoData, seedDemoData } from "@/lib/api/demo.functions";
 import { deleteAccount, getProfile, listSequences, updateProfile } from "@/lib/api/profile.functions";
 import { firstErrorMessage } from "@/lib/validation";
 import { SUPPORTED_CURRENCIES } from "@/lib/currency";
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigate } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_authenticated/settings")({
   head: () => ({
@@ -49,6 +49,7 @@ function Settings() {
     email: "",
     currency: "USD" as (typeof SUPPORTED_CURRENCIES)[number],
     default_sequence_id: "" as string | null,
+    payment_instructions: "",
   });
   const [password, setPassword] = useState("");
 
@@ -60,6 +61,7 @@ function Settings() {
       email: data.email ?? "",
       currency: (data.currency ?? "USD") as (typeof SUPPORTED_CURRENCIES)[number],
       default_sequence_id: data.default_sequence_id,
+      payment_instructions: data.payment_instructions ?? "",
     });
   }, [data]);
 
@@ -177,6 +179,24 @@ function Settings() {
           </select>
         </div>
         <div className="space-y-1.5">
+          <Label htmlFor="payment_instructions">How clients pay you</Label>
+          <Textarea
+            id="payment_instructions"
+            rows={5}
+            maxLength={600}
+            value={form.payment_instructions}
+            onChange={(e) => setForm({ ...form, payment_instructions: e.target.value })}
+            placeholder={
+              "How to pay:\nBank transfer — Acme Ltd\nSort code 00-00-00 · Account 12345678\nPlease quote the invoice number as the reference."
+            }
+          />
+          <p className="text-xs text-muted-foreground">
+            Included in every reminder so clients can pay without asking. Without it, reminders
+            ask for payment but give no way to send it.
+          </p>
+        </div>
+
+        <div className="space-y-1.5">
           <Label htmlFor="default_sequence_id">Default reminder sequence</Label>
           <select
             id="default_sequence_id"
@@ -195,6 +215,12 @@ function Settings() {
         <Button type="submit" disabled={mutation.isPending}>
           {mutation.isPending ? "Saving…" : "Save settings"}
         </Button>
+        <p className="text-sm text-muted-foreground">
+          Want different wording on reminders?{" "}
+          <Link to="/templates" className="underline underline-offset-2">
+            Customize email templates
+          </Link>
+        </p>
       </form>
 
       <section className="mb-8 max-w-xl space-y-3 rounded-lg border border-border p-5">
