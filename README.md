@@ -73,36 +73,3 @@ If you already use QuickBooks or FreshBooks, great. PaidChase doesn't replace th
 If you send invoices and keep forgetting to follow up — that's the job.
 
 > *I put the invoice in here and now I don't have to think about it.*
-
----
-
-## Get started
-
-```sh
-git clone https://github.com/g0GobliN/paidchase.git
-cd paidchase
-cp .env.example .env
-# add Supabase URL + publishable key
-npm i
-npm run dev
-```
-
-App: [http://localhost:8080](http://localhost:8080)
-
-### Environment
-
-| Variable | Where | Purpose |
-| -------- | ----- | ------- |
-| `VITE_SUPABASE_URL` / `SUPABASE_URL` | Client + server | Supabase project URL |
-| `VITE_SUPABASE_PUBLISHABLE_KEY` / `SUPABASE_PUBLISHABLE_KEY` | Client + server | Public API key |
-| `SUPABASE_SERVICE_ROLE_KEY` | Server only | Admin client (optional for some jobs) |
-| `RESEND_API_KEY` | Server only | Send reminder emails |
-| `EMAIL_FROM` | Server only | From address for reminders |
-
-Developer setup (architecture, cron, Resend, gaps): see [DEVELOPMENT.md](./DEVELOPMENT.md).
-
----
-
-## License
-
-Private — all rights reserved.
