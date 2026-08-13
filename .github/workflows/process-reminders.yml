@@ -34,8 +34,8 @@ jobs:
           set -euo pipefail
 
           if [ -z "${APP_URL:-}" ] || [ -z "${WORKER_SECRET:-}" ]; then
-            echo "::error::APP_URL and WORKER_SECRET repository secrets must both be set."
-            exit 1
+            echo "::warning::APP_URL and WORKER_SECRET are not set — skipping reminder worker. Add both repository secrets to enable this schedule."
+            exit 0
           fi
 
           response=$(mktemp)
